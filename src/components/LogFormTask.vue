@@ -54,8 +54,8 @@ const currentTask = ref('')
 </script>
 
 <template>
-  <h1 v-if="allTasks">Лог задач</h1>
-  <div class="log-form-task" v-if="allTasks">
+  <h1 v-if="allTasks.value">Лог задач</h1>
+  <div class="log-form-task" v-if="allTasks.value">
     <div
         v-for="logTask in allTasks"
     >
