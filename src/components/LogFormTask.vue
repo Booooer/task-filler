@@ -1,19 +1,21 @@
 <script setup>
 import {ref} from 'vue'
 import {Plus} from '@element-plus/icons-vue'
+import {Delete} from "@element-plus/icons-vue"
 import {ElMessage} from 'element-plus'
 
-const allTasks = ref()
+const allTasks = ref([])
 allTasks.value = JSON.parse(localStorage.getItem('tasks')) ?? []
 const clearStorage = () => {
   localStorage.clear()
+  allTasks.value = []
 }
 
-const date = new Date(); // 3 января 2014 года
+const date = new Date()
 const getWeekDay = () => {
-  let days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+  let days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 
-  return days[date.getDay()];
+  return days[date.getDay()]
 }
 
 const getReportInfo = () => {
@@ -26,9 +28,26 @@ const getReportInfo = () => {
     report += '\n' + ' - ' + task
   })
 
-  // allTasks.value.push(tasks)
-  // localStorage.setItem('tasks',JSON.stringify(allTasks))
+  localStorage.setItem('tasks', JSON.stringify(allTasks))
   navigator.clipboard.writeText(report)
+  setLocalStorage()
+}
+
+const setLocalStorage = () => {
+  let prepareTasks = allTasks.value
+
+  if (prepareTasks.length === 0) {
+    allTasks.value = tasks.value
+    return localStorage.setItem('tasks', JSON.stringify(tasks.value))
+  }
+
+  tasks.value.forEach((task) => {
+    if (!prepareTasks.includes(task) || prepareTasks.length === 0) {
+      prepareTasks.push(task)
+    }
+  })
+
+  localStorage.setItem('tasks', JSON.stringify(prepareTasks))
 }
 
 const validateTask = (task) => {
@@ -43,36 +62,59 @@ const updateStorage = (task) => {
     return
   }
   tasks.value.push(task)
+  currentTask.value = ''
 }
 
 const copyTask = (task) => {
   navigator.clipboard.writeText(task)
 }
 
-let tasks = ref([])
+const removeItemTask = (index) => {
+  tasks.value.splice(index, 1)
+}
+
+const removeLogItem = (index) => {
+  allTasks.value.splice(index,1)
+  localStorage.setItem('tasks',JSON.stringify(allTasks.value))
+}
+
+const tasks = ref([])
 const currentTask = ref('')
+
 </script>
 
 <template>
-  <h1 v-if="allTasks.value">Лог задач</h1>
-  <div class="log-form-task" v-if="allTasks.value">
+  <h1 v-if="allTasks">Лог задач</h1>
+  <div class="log-form-task" v-if="allTasks">
     <div
-        v-for="logTask in allTasks"
+        v-for="(logTask,index) in allTasks"
     >
       <div
           class="task-item"
           @click="copyTask(logTask)"
       >
         <p>{{ logTask }}</p>
+        <div class="rm-button">
+          <el-icon
+              @click="removeLogItem(index)">
+            <Delete/>
+          </el-icon>
+        </div>
       </div>
     </div>
   </div>
 
   <h1>Текущий список</h1>
   <div class="log-form-task">
-    <div v-for="task in tasks">
+    <div v-for="(task, index) in tasks">
       <div class="task-item">
         <p>{{ task }}</p>
+        <div class="rm-button">
+          <el-icon
+              @click="removeItemTask(index)">
+            <Delete/>
+          </el-icon>
+        </div>
       </div>
     </div>
   </div>
@@ -94,22 +136,44 @@ const currentTask = ref('')
   >
     Сформировать отчёт
   </el-button>
+  <el-button
+      style="margin-top: 15px"
+      size="default"
+      @click="clearStorage()"
+  >
+    Очистить лог
+  </el-button>
 </template>
 
 
 <style scoped>
 .log-form-task {
+  position: relative;
   border: 2px solid #747bff;
   border-radius: 15px;
   text-align: left;
-  padding: 10px 30px;
-  max-height: 200px;
+  width: 50vw;
+  min-width: 400px;
   min-height: 100px;
   overflow: auto;
 }
 
 .task-item {
-  padding: 1px 2px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-content: center;
+}
+
+.task-item > div {
+  padding-right: 10px;
+  transition: all .5s linear;
+  cursor: pointer;
+}
+
+.task-item > p {
+  padding-left: 10px;
 }
 
 .task-item:hover {
