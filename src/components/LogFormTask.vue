@@ -3,6 +3,7 @@ import {ref} from 'vue'
 import {Plus} from '@element-plus/icons-vue'
 import {Delete} from "@element-plus/icons-vue"
 import {ElMessage} from 'element-plus'
+import {isEmpty} from "element-plus/es/utils/index";
 
 const allTasks = ref([])
 allTasks.value = JSON.parse(localStorage.getItem('tasks')) ?? []
@@ -51,22 +52,44 @@ const setLocalStorage = () => {
 }
 
 const validateTask = (task) => {
-  if (task.length < 9 || task.length > 64) {
-    return false
-  }
-  return task.indexOf('Тест');
+  return !(task.length < 9 || task.length > 64);
 }
 const updateStorage = (task) => {
   if (!validateTask(task)) {
     ElMessage.error('Ты уверен, что написал всё корректно?')
     return
   }
-  tasks.value.push(task)
+
+  if (currentProject.value.length > 0) {
+    tasks.value.push(currentProject.value + ' - ' + checkTaskName(task))
+  } else {
+    tasks.value.push(task)
+    updateProjects(task)
+  }
+
   currentTask.value = ''
+  currentProject.value = ''
+}
+
+const checkTaskName = (task) => {
+  if (task.indexOf('-')) {
+    return task.split('-')[1] ?? task.split('-')[0]
+  }
+
+  return task
 }
 
 const copyTask = (task) => {
   navigator.clipboard.writeText(task)
+}
+
+const updateProjects = (task) => {
+  let project = task.split('-')[0]
+  if (!projects.value.includes(project)) {
+    console.log(project)
+    projects.value.push(project)
+    localStorage.setItem('projects', JSON.stringify(projects.value))
+  }
 }
 
 const removeItemTask = (index) => {
@@ -74,18 +97,25 @@ const removeItemTask = (index) => {
 }
 
 const removeLogItem = (index) => {
-  allTasks.value.splice(index,1)
-  localStorage.setItem('tasks',JSON.stringify(allTasks.value))
+  allTasks.value.splice(index, 1)
+  localStorage.setItem('tasks', JSON.stringify(allTasks.value))
 }
 
 const tasks = ref([])
 const currentTask = ref('')
+const projects = ref([])
+const currentProject = ref('')
+projects.value = !isEmpty(JSON.parse(localStorage.getItem('projects'))) ? JSON.parse(localStorage.getItem('projects')) : []
+
+if (!projects.value.includes('Б24')) {
+  projects.value.push('Б24')
+}
 
 </script>
 
 <template>
-  <h1 v-if="allTasks">Лог задач</h1>
-  <div class="log-form-task" v-if="allTasks">
+  <h1 v-if="allTasks.length">Лог задач</h1>
+  <div class="log-form-task" v-if="allTasks.length">
     <div
         v-for="(logTask,index) in allTasks"
     >
@@ -104,8 +134,8 @@ const currentTask = ref('')
     </div>
   </div>
 
-  <h1>Текущий список</h1>
-  <div class="log-form-task">
+  <h1 v-if="tasks.length">Текущий список</h1>
+  <div v-if="tasks.length" class="log-form-task">
     <div v-for="(task, index) in tasks">
       <div class="task-item">
         <p>{{ task }}</p>
@@ -121,13 +151,32 @@ const currentTask = ref('')
   <div class="add-task-input">
     <el-input
         v-model="currentTask"
-        style="width: 340px"
+        style="width: 440px"
         placeholder="Что делал сегодня?)"
-    />
-    <el-button
-        :icon="Plus"
-        @click="updateStorage(currentTask)"
-    />
+        class="input-with-select"
+    >
+      <template #prepend>
+        <el-select
+            v-model="currentProject"
+            placeholder="Проект"
+            style="width: 115px"
+            >
+          <div
+              v-for="project in projects">
+            <el-option
+                :label="project"
+                :value="project"
+            />
+          </div>
+        </el-select>
+      </template>
+      <template #append>
+        <el-button
+            :icon="Plus"
+            @click="updateStorage(currentTask)"
+        />
+      </template>
+    </el-input>
   </div>
   <el-button
       style="margin-top: 15px"
@@ -141,7 +190,7 @@ const currentTask = ref('')
       size="default"
       @click="clearStorage()"
   >
-    Очистить лог
+    Очистить лог задач
   </el-button>
 </template>
 
