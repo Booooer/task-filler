@@ -5,7 +5,3 @@ import LogFormTask from './components/LogFormTask.vue'
 <template>
   <LogFormTask/>
 </template>
-
-<style scoped>
-
-</style>

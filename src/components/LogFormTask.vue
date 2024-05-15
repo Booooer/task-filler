@@ -8,8 +8,19 @@ import {isEmpty} from "element-plus/es/utils/index";
 const allTasks = ref([])
 allTasks.value = JSON.parse(localStorage.getItem('tasks')) ?? []
 const clearStorage = () => {
-  localStorage.clear()
-  allTasks.value = []
+  if (!clearValue.value) {
+    ElMessage.warning('Выбери тип лога, дурачок :)')
+    return
+  }
+  localStorage.setItem(`${clearValue.value}`, null)
+
+  if (clearValue.value === 'tasks') {
+    allTasks.value = []
+  } else {
+    projects.value = ['Б24']
+  }
+
+  ElMessage.success('Выбранный лог был успешно очищен!')
 }
 
 const date = new Date()
@@ -84,7 +95,7 @@ const copyTask = (task) => {
 }
 
 const updateProjects = (task) => {
-  let project = task.split('-')[0]
+  let project = task.split('-')[0].replaceAll(' ', '')
   if (!projects.value.includes(project)) {
     console.log(project)
     projects.value.push(project)
@@ -95,21 +106,38 @@ const updateProjects = (task) => {
 const removeItemTask = (index) => {
   tasks.value.splice(index, 1)
 }
-
 const removeLogItem = (index) => {
   allTasks.value.splice(index, 1)
   localStorage.setItem('tasks', JSON.stringify(allTasks.value))
 }
+const calculateCountTasks = () => {
 
+}
+
+let projectsCount = new Map([])
 const tasks = ref([])
 const currentTask = ref('')
 const projects = ref([])
 const currentProject = ref('')
+const clearValue = ref('')
 projects.value = !isEmpty(JSON.parse(localStorage.getItem('projects'))) ? JSON.parse(localStorage.getItem('projects')) : []
 
 if (!projects.value.includes('Б24')) {
   projects.value.push('Б24')
 }
+
+window.addEventListener('load', () => {
+  allTasks.value.forEach((task) => {
+    let project = task.split('-')[0].replaceAll(' ', '')
+
+    if (!projectsCount.get(project)) {
+      projectsCount.set(project, 1)
+    } else {
+      let number = projectsCount.get(project)
+      projectsCount.set(project, ++number)
+    }
+  })
+})
 
 </script>
 
@@ -160,7 +188,7 @@ if (!projects.value.includes('Б24')) {
             v-model="currentProject"
             placeholder="Проект"
             style="width: 115px"
-            >
+        >
           <div
               v-for="project in projects">
             <el-option
@@ -185,13 +213,54 @@ if (!projects.value.includes('Б24')) {
   >
     Сформировать отчёт
   </el-button>
-  <el-button
-      style="margin-top: 15px"
-      size="default"
-      @click="clearStorage()"
-  >
-    Очистить лог задач
-  </el-button>
+  <div class="clear-log-btn">
+    <el-input
+        style="width: 340px"
+        disabled
+        placeholder="Что чистим?"
+    >
+      <template #append>
+        <el-select
+            v-model="clearValue"
+            placeholder="Тип лога"
+            style="width: 125px"
+        >
+          <el-option
+              label="Задачи"
+              value="tasks"
+          />
+          <el-option
+              label="Проекты"
+              value="projects"
+          />
+        </el-select>
+      </template>
+      <template #prepend>
+        <el-button
+            size="default"
+            @click="clearStorage()"
+            style="width: 80px"
+        >
+          <el-icon>
+            <Delete/>
+          </el-icon>
+        </el-button>
+      </template>
+    </el-input>
+  </div>
+  <div
+      style="width: 100%; display: flex; justify-content: center">
+    <div class="stats-report">
+      <el-tag
+          v-if="allTasks.length"
+          v-for="tag in projectsCount"
+          type="primary"
+          effect="dark"
+      >
+        {{ tag[0] }} - {{ projectsCount.get(tag[0]) }}
+      </el-tag>
+    </div>
+  </div>
 </template>
 
 
@@ -204,6 +273,7 @@ if (!projects.value.includes('Б24')) {
   width: 50vw;
   min-width: 400px;
   min-height: 100px;
+  max-height: 250px;
   overflow: auto;
 }
 
@@ -233,5 +303,18 @@ if (!projects.value.includes('Б24')) {
 
 .add-task-input {
   margin-top: 15px;
+}
+
+.clear-log-btn {
+  margin-top: 10px;
+}
+
+.stats-report {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: nowrap;
+  max-width: 200px;
+  align-items: center;
+  gap: 5px;
 }
 </style>
