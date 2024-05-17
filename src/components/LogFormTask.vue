@@ -1,6 +1,7 @@
 <script setup>
 import {ref} from 'vue'
 import {Plus} from '@element-plus/icons-vue'
+import {Minus} from '@element-plus/icons-vue'
 import {Delete} from "@element-plus/icons-vue"
 import {ElMessage} from 'element-plus'
 import {isEmpty} from "element-plus/es/utils/index";
@@ -63,7 +64,7 @@ const setLocalStorage = () => {
 }
 
 const validateTask = (task) => {
-  return !(task.length < 9 || task.length > 64);
+  return !(task.length < 9 || task.length > 96);
 }
 const updateStorage = (task) => {
   if (!validateTask(task)) {
@@ -95,9 +96,8 @@ const copyTask = (task) => {
 }
 
 const updateProjects = (task) => {
-  let project = task.split('-')[0].replaceAll(' ', '')
-  if (!projects.value.includes(project)) {
-    console.log(project)
+  let project = task.split('-')[0].trim()
+  if (!projects.value.includes(project) ?? project.length > 0) {
     projects.value.push(project)
     localStorage.setItem('projects', JSON.stringify(projects.value))
   }
@@ -110,16 +110,25 @@ const removeLogItem = (index) => {
   allTasks.value.splice(index, 1)
   localStorage.setItem('tasks', JSON.stringify(allTasks.value))
 }
-const calculateCountTasks = () => {
 
+const switchLogShow = (isCurrent = false) => {
+  if (isCurrent) {
+    showCurrentTasks.value = !showCurrentTasks.value
+  } else {
+    showLogTasks.value = !showLogTasks.value
+  }
 }
 
+
 let projectsCount = new Map([])
+const showLogTasks = ref(true)
+const showCurrentTasks = ref(true)
 const tasks = ref([])
 const currentTask = ref('')
 const projects = ref([])
 const currentProject = ref('')
 const clearValue = ref('')
+const countProjectValues = ref()
 projects.value = !isEmpty(JSON.parse(localStorage.getItem('projects'))) ? JSON.parse(localStorage.getItem('projects')) : []
 
 if (!projects.value.includes('Б24')) {
@@ -127,14 +136,16 @@ if (!projects.value.includes('Б24')) {
 }
 
 window.addEventListener('load', () => {
+  countProjectValues.value = new Map
+  // tasks.value = !isEmpty(JSON.parse(localStorage.getItem('tasks'))) ? JSON.parse(localStorage.getItem('tasks')) : []
   allTasks.value.forEach((task) => {
-    let project = task.split('-')[0].replaceAll(' ', '')
+    let project = task.split('-')[0].trim()
 
     if (!projectsCount.get(project)) {
-      projectsCount.set(project, 1)
+      countProjectValues.value.set(project, 1)
     } else {
-      let number = projectsCount.get(project)
-      projectsCount.set(project, ++number)
+      let number = countProjectValues.value.get(project)
+      countProjectValues.value.set(project, ++number)
     }
   })
 })
@@ -142,8 +153,24 @@ window.addEventListener('load', () => {
 </script>
 
 <template>
-  <h1 v-if="allTasks.length">Лог задач</h1>
-  <div class="log-form-task" v-if="allTasks.length">
+  <div v-if="allTasks.length" style="display: flex; align-items: center;justify-content: center">
+    <h1 v-if="allTasks.length">Лог задач</h1>
+    <el-icon
+        v-model="showLogTasks"
+        style="width: 50px"
+        v-if="showLogTasks"
+        @click="switchLogShow()">
+      <Minus/>
+    </el-icon>
+    <el-icon
+        style="width: 50px"
+        v-model="showLogTasks"
+        v-if="!showLogTasks"
+        @click="switchLogShow()">
+      <Plus/>
+    </el-icon>
+  </div>
+  <div class="log-form-task" v-if="allTasks.length && showLogTasks">
     <div
         v-for="(logTask,index) in allTasks"
     >
@@ -162,8 +189,24 @@ window.addEventListener('load', () => {
     </div>
   </div>
 
-  <h1 v-if="tasks.length">Текущий список</h1>
-  <div v-if="tasks.length" class="log-form-task">
+  <div v-if="tasks.length" style="display: flex; align-items: center;justify-content: center">
+    <h1 v-if="tasks.length">Текущий список</h1>
+    <el-icon
+        v-model="showCurrentTasks"
+        style="width: 50px"
+        v-if="showCurrentTasks"
+        @click="switchLogShow(true)">
+      <Minus/>
+    </el-icon>
+    <el-icon
+        style="width: 50px"
+        v-model="showCurrentTasks"
+        v-if="!showCurrentTasks"
+        @click="switchLogShow(true)">
+      <Plus/>
+    </el-icon>
+  </div>
+  <div v-if="tasks.length && showCurrentTasks" class="log-form-task">
     <div v-for="(task, index) in tasks">
       <div class="task-item">
         <p>{{ task }}</p>
@@ -249,15 +292,14 @@ window.addEventListener('load', () => {
     </el-input>
   </div>
   <div
-      style="width: 100%; display: flex; justify-content: center">
+      style="width: 100%; display: flex; justify-content: center; flex-wrap: nowrap">
     <div class="stats-report">
       <el-tag
-          v-if="allTasks.length"
-          v-for="tag in projectsCount"
+          v-for="tag in countProjectValues"
           type="primary"
           effect="dark"
       >
-        {{ tag[0] }} - {{ projectsCount.get(tag[0]) }}
+        {{ tag[0] }} - {{ countProjectValues.get(tag[0]) }}
       </el-tag>
     </div>
   </div>
@@ -312,9 +354,9 @@ window.addEventListener('load', () => {
 .stats-report {
   margin-top: 20px;
   display: flex;
-  flex-wrap: nowrap;
-  max-width: 200px;
+  flex-wrap: wrap;
+  max-width: 250px;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
 }
 </style>
